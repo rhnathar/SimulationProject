@@ -46,13 +46,15 @@ class Portal:
         self.y = y
         self.color = color
         self.vehicles_detected_time = {}
+        self.on = True
 
     def draw(self, win):
         pygame.draw.circle(win, self.color, (self.x, self.y), 4)
 
     def update(self, vehicle):
         for vehicle in vehicles:
-            if vehicle.x <= self.x + 10 and vehicle.y <= self.y:
+            distance = vehicle.x - self.x
+            if distance <=  10 and distance >=-15 and vehicle.y <= self.y:
                 if vehicle not in self.vehicles_detected_time:
                     self.vehicles_detected_time[vehicle] = time.time()
                 elif time.time() - self.vehicles_detected_time[vehicle] >= 3:
@@ -62,7 +64,7 @@ class Portal:
                     del self.vehicles_detected_time[vehicle]
                 if not self.vehicles_detected_time:
                     self.color = "red"
-            if vehicle.x < self.x - 15:
+            if distance < -15 and distance >= -20 and vehicle.y <= self.y:
                 self.color = "red"
 class Vehicle:
     def __init__(self, x, y):
@@ -76,20 +78,23 @@ class Vehicle:
     def draw(self, win):
         pygame.draw.rect(win, (0, 0, 255), (self.x, self.y, VEHICLE_SIZE, VEHICLE_SIZE))
 
-    def move(self, portal):
+    def move(self, enter_portal, exit_portal):
         if self.x == ENTRY_LANE_X and self.y < CIRCUIT_Y:
             self.y += self.speed
         elif self.y >= CIRCUIT_Y and self.x > CIRCUIT_X and self.x < EXIT_LANE_X and self.y < CIRCUIT_Y + CIRCUIT_HEIGHT - VEHICLE_SIZE:
-            if self.in_status == False and self.x >= portal.x:
-                distance = self.x - portal.x
-                self.speed_portal = distance/70 * self.desired_speed
-                self.x -= min(self.speed_portal, self.speed)
-            if portal.color == 'green' and self.x <= portal.x + 5:
-                self.in_status = True
-            if self.in_status:
-                distance = self.x - CIRCUIT_X
-                self.speed_portal = (1 - distance/105) * self.desired_speed
-                self.x -= min(self.speed, self.speed_portal)
+            if enter_portal.on:
+                if self.in_status == False and self.x >= enter_portal.x:
+                    distance = self.x - enter_portal.x
+                    self.speed_portal = distance/70 * self.desired_speed
+                    self.x -= min(self.speed_portal, self.speed)
+                if enter_portal.color == 'green' and self.x <= enter_portal.x + 5:
+                    self.in_status = True
+                if self.in_status:
+                    distance = self.x - CIRCUIT_X
+                    self.speed_portal = (1 - distance/105) * self.desired_speed
+                    self.x -= min(self.speed, self.speed_portal)
+            else:
+                self.x -= self.speed
         elif self.x <= CIRCUIT_X and self.y >= CIRCUIT_Y and self.y < CIRCUIT_Y + CIRCUIT_HEIGHT - VEHICLE_SIZE:
             self.y += self.speed
         elif self.y >= CIRCUIT_Y + CIRCUIT_HEIGHT - VEHICLE_SIZE and self.x < CIRCUIT_X + CIRCUIT_WIDTH - VEHICLE_SIZE:
@@ -97,7 +102,17 @@ class Vehicle:
         elif self.x >= CIRCUIT_X + CIRCUIT_WIDTH - VEHICLE_SIZE and self.y >= CIRCUIT_Y:
             self.y -= self.speed
         elif self.y <= CIRCUIT_Y and self.x >= EXIT_LANE_X:
-            self.x -= self.speed
+            if exit_portal.on:
+                if self.in_status and self.x >= exit_portal.x:
+                    distance = self.x - exit_portal.x
+                    self.speed_portal = distance/100 * self.desired_speed
+                    self.x -= min(self.speed_portal, self.speed)
+                if exit_portal.color == 'green' and self.x <= exit_portal.x + 5:
+                    self.in_status = False
+                if self.in_status == False:
+                    distance = self.x - EXIT_LANE_X
+                    self.speed_portal = (1 - distance/75) * self.desired_speed
+                    self.x -= min(self.speed, self.speed_portal)
         elif self.x <= EXIT_LANE_X + VEHICLE_SIZE and self.y <= CIRCUIT_Y:
            self.y -= self.speed
     def calculate_acceleration(self, front_vehicle, s):
@@ -122,7 +137,8 @@ vehicles = [Vehicle(ENTRY_LANE_X, LANE_Y)]
 button = Button((0, 255, 0), 350, 250, 100, 50, 'Generate')
 
 # create portal
-portal = Portal(300, 105)
+enter_portal = Portal(300, 105)
+exit_portal = Portal(500, 105)
 
 # Game loop
 clock = pygame.time.Clock()
@@ -167,14 +183,16 @@ while run:
                 vehicle.speed = max(0, vehicle.speed + a_i)
 
     for vehicle in vehicles:
-        vehicle.move(portal)
+        vehicle.move(enter_portal, exit_portal)
+        enter_portal.update(vehicle)
+        exit_portal.update(vehicle)
         vehicle.draw(win)
-        portal.update(vehicle)
-
+            
         # Remove vehicle if it reaches the exit lane
         if vehicle.x >= EXIT_LANE_X and vehicle.y == 0:
             vehicles.remove(vehicle)
-    portal.draw(win)
+    exit_portal.draw(win)
+    enter_portal.draw(win)
     pygame.display.update()
 
 pygame.quit()
