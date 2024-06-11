@@ -39,21 +39,57 @@ class Button:
             if self.y < pos[1] < self.y + self.height:
                 return True
         return False
+    
+class Portal:
+    def __init__(self, x, y, color="red"):
+        self.x = x
+        self.y = y
+        self.color = color
+        self.vehicles_detected_time = {}
 
+    def draw(self, win):
+        pygame.draw.circle(win, self.color, (self.x, self.y), 4)
+
+    def update(self, vehicle):
+        for vehicle in vehicles:
+            if vehicle.x <= self.x + 10 and vehicle.y <= self.y:
+                if vehicle not in self.vehicles_detected_time:
+                    self.vehicles_detected_time[vehicle] = time.time()
+                elif time.time() - self.vehicles_detected_time[vehicle] >= 3:
+                    self.color = "green"
+            else:
+                if vehicle in self.vehicles_detected_time:
+                    del self.vehicles_detected_time[vehicle]
+                if not self.vehicles_detected_time:
+                    self.color = "red"
+            if vehicle.x < self.x - 15:
+                self.color = "red"
 class Vehicle:
     def __init__(self, x, y):
         self.x = x
         self.y = y
         self.speed = VEHICLE_SPEED
+        self.speed_portal = 0
+        self.desired_speed = VEHICLE_SPEED
+        self.in_status = False
 
     def draw(self, win):
-        pygame.draw.rect(win, (255, 0, 0), (self.x, self.y, VEHICLE_SIZE, VEHICLE_SIZE))
+        pygame.draw.rect(win, (0, 0, 255), (self.x, self.y, VEHICLE_SIZE, VEHICLE_SIZE))
 
-    def move(self):
+    def move(self, portal):
         if self.x == ENTRY_LANE_X and self.y < CIRCUIT_Y:
             self.y += self.speed
         elif self.y >= CIRCUIT_Y and self.x > CIRCUIT_X and self.x < EXIT_LANE_X and self.y < CIRCUIT_Y + CIRCUIT_HEIGHT - VEHICLE_SIZE:
-            self.x -= self.speed
+            if self.in_status == False and self.x >= portal.x:
+                distance = self.x - portal.x
+                self.speed_portal = distance/70 * self.desired_speed
+                self.x -= min(self.speed_portal, self.speed)
+            if portal.color == 'green' and self.x <= portal.x + 5:
+                self.in_status = True
+            if self.in_status:
+                distance = self.x - CIRCUIT_X
+                self.speed_portal = (1 - distance/105) * self.desired_speed
+                self.x -= min(self.speed, self.speed_portal)
         elif self.x <= CIRCUIT_X and self.y >= CIRCUIT_Y and self.y < CIRCUIT_Y + CIRCUIT_HEIGHT - VEHICLE_SIZE:
             self.y += self.speed
         elif self.y >= CIRCUIT_Y + CIRCUIT_HEIGHT - VEHICLE_SIZE and self.x < CIRCUIT_X + CIRCUIT_WIDTH - VEHICLE_SIZE:
@@ -64,14 +100,13 @@ class Vehicle:
             self.x -= self.speed
         elif self.x <= EXIT_LANE_X + VEHICLE_SIZE and self.y <= CIRCUIT_Y:
            self.y -= self.speed
-    
     def calculate_acceleration(self, front_vehicle, s):
         # IDM parameters
         v0 = 2  # Desired speed in pixels per frame
         a = 0.3  # Comfortable acceleration in pixels per frame per frame   
         b = 0.2  # Comfortable deceleration in pixels per frame per frame
         T = 1.5  # Headway time in seconds
-        s0 = 5  # Minimum safe distance in pixels
+        s0 = 7  # Minimum safe distance in pixels
         delta = 4
 
         # Convert time headway to frames
@@ -83,7 +118,12 @@ class Vehicle:
 # Create vehicles
 vehicles = [Vehicle(ENTRY_LANE_X, LANE_Y)]
 
+# Create button
 button = Button((0, 255, 0), 350, 250, 100, 50, 'Generate')
+
+# create portal
+portal = Portal(300, 105)
+
 # Game loop
 clock = pygame.time.Clock()
 
@@ -127,13 +167,14 @@ while run:
                 vehicle.speed = max(0, vehicle.speed + a_i)
 
     for vehicle in vehicles:
-        vehicle.move()
+        vehicle.move(portal)
         vehicle.draw(win)
+        portal.update(vehicle)
 
         # Remove vehicle if it reaches the exit lane
         if vehicle.x >= EXIT_LANE_X and vehicle.y == 0:
             vehicles.remove(vehicle)
-
+    portal.draw(win)
     pygame.display.update()
 
 pygame.quit()
