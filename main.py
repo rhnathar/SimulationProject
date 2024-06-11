@@ -1,49 +1,21 @@
 import pygame
 import time
+import configs.variables as var
+from object.vehicles import Vehicle 
+from object.button import Button
 
 # Initialize Pygame
 pygame.init()
 
-# Set up some constants
-WINDOW_WIDTH, WINDOW_HEIGHT = 800, 600
-VEHICLE_SIZE = 5
-VEHICLE_SPEED = 2
-CIRCUIT_WIDTH, CIRCUIT_HEIGHT = 400, 400
-CIRCUIT_X, CIRCUIT_Y = (WINDOW_WIDTH - CIRCUIT_WIDTH) // 2, (WINDOW_HEIGHT - CIRCUIT_HEIGHT) // 2
 
-ENTRY_LANE_X = 370
-EXIT_LANE_X = 430
-LANE_Y = 0
 
 # Create game window
-win = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
-
-class Vehicle:
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
-
-    def draw(self, win):
-        pygame.draw.rect(win, (255, 0, 0), (self.x, self.y, VEHICLE_SIZE, VEHICLE_SIZE))
-
-    def move(self):
-        if self.x == ENTRY_LANE_X and self.y < CIRCUIT_Y:
-            self.y += VEHICLE_SPEED
-        elif self.y == CIRCUIT_Y and self.x > CIRCUIT_X and self.x < EXIT_LANE_X:
-            self.x -= VEHICLE_SPEED
-        elif self.x == CIRCUIT_X and self.y >= CIRCUIT_Y and self.y < CIRCUIT_Y + CIRCUIT_HEIGHT - VEHICLE_SIZE:
-            self.y += VEHICLE_SPEED
-        elif self.y >= CIRCUIT_Y + CIRCUIT_HEIGHT - VEHICLE_SIZE and self.x >= CIRCUIT_X and self.x < CIRCUIT_X + CIRCUIT_WIDTH - VEHICLE_SIZE:
-            self.x += VEHICLE_SPEED
-        elif self.x >= CIRCUIT_X + CIRCUIT_WIDTH - VEHICLE_SIZE and self.y <= CIRCUIT_Y + CIRCUIT_HEIGHT + VEHICLE_SIZE and self.y > CIRCUIT_Y:
-            self.y -= VEHICLE_SPEED
-        elif self.y == CIRCUIT_Y and self.x > EXIT_LANE_X:
-            self.x -= VEHICLE_SPEED
-        elif self.x == EXIT_LANE_X and self.y <= CIRCUIT_Y:
-           self.y -= VEHICLE_SPEED
+win = pygame.display.set_mode((var.WINDOW_WIDTH, var.WINDOW_HEIGHT))
 
 # Create vehicles
-vehicles = [Vehicle(ENTRY_LANE_X, LANE_Y)]
+vehicles = [Vehicle(var.ENTRY_LANE_X, var.LANE_Y)]
+
+button = Button((0, 255, 0), 350, 250, 100, 50, 'Generate')
 
 # Game loop
 clock = pygame.time.Clock()
@@ -56,26 +28,41 @@ while run:
     clock.tick(60)
 
     for event in pygame.event.get():
+        pos = pygame.mouse.get_pos()
         if event.type == pygame.QUIT:
             run = False
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if button.isOver(pos):
+                vehicles.append(Vehicle(var.ENTRY_LANE_X, var.LANE_Y))
 
     win.fill((0, 0, 0))
-    pygame.draw.rect(win, (255, 255, 255), (CIRCUIT_X, CIRCUIT_Y, CIRCUIT_WIDTH, CIRCUIT_HEIGHT), 2)
+    button.draw(win)
+    pygame.draw.rect(win, (255, 255, 255), (var.CIRCUIT_X, var.CIRCUIT_Y, var.CIRCUIT_WIDTH, var.CIRCUIT_HEIGHT), 2)
     #entry lane
     pygame.draw.line(win, (255, 255, 255), (370, 0), (370, 100), 2)
     #exit lane
     pygame.draw.line(win, (255, 255, 255), (430, 0), (430, 100), 2)
-    # Spawn new vehicle every 2 seconds
-    if time.time() - last_spawn_time > 2:
-        vehicles.append(Vehicle(ENTRY_LANE_X, LANE_Y))
-        last_spawn_time = time.time()
+
+    for i in range(len(vehicles)):
+        vehicle = vehicles[i]
+
+        # If there is a previous vehicle, adjust speed based on distance
+        if i > 0:
+            prev_vehicle = vehicles[i-1]
+            distance = ((vehicle.x - prev_vehicle.x)**2 + (vehicle.y - prev_vehicle.y)**2)**0.5
+            if(distance == 0):
+                vehicle.speed = 0
+            else:
+                a_i = vehicle.calculate_acceleration(vehicles[i-1], distance)
+                # Adjust speed based on acceleration
+                vehicle.speed = max(0, vehicle.speed + a_i)
 
     for vehicle in vehicles:
-        vehicle.move()
+        vehicle.move(win)
         vehicle.draw(win)
 
         # Remove vehicle if it reaches the exit lane
-        if vehicle.x >= EXIT_LANE_X and vehicle.y == 0:
+        if vehicle.x >= var.EXIT_LANE_X and vehicle.y == 0:
             vehicles.remove(vehicle)
 
     pygame.display.update()
