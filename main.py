@@ -54,7 +54,7 @@ class Portal:
     def update(self, vehicle):
         for vehicle in vehicles:
             distance = vehicle.x - self.x
-            if distance <=  10 and distance >=-15 and vehicle.y <= self.y:
+            if distance <=  10 and distance >=-10 and vehicle.y <= self.y:
                 if vehicle not in self.vehicles_detected_time:
                     self.vehicles_detected_time[vehicle] = time.time()
                 elif time.time() - self.vehicles_detected_time[vehicle] >= 3:
@@ -64,7 +64,7 @@ class Portal:
                     del self.vehicles_detected_time[vehicle]
                 if not self.vehicles_detected_time:
                     self.color = "red"
-            if distance < -15 and distance >= -20 and vehicle.y <= self.y:
+            if distance < -10 and distance >= -11 and vehicle.y <= self.y:
                 self.color = "red"
 class Vehicle:
     def __init__(self, x, y):
