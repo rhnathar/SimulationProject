@@ -170,7 +170,7 @@ class Vehicle:
         # up
         elif self.y <= CIRCUIT_Y + CIRCUIT_WIDTH and CIRCUIT_X + CIRCUIT_WIDTH <= self.x < CIRCUIT_WIDTH + CIRCUIT_X  + VEHICLE_SIZE and self.y > CIRCUIT_Y:
             self.y -= self.speed
-        # left and slowing down to portal
+        # left and slowing down to portal then exit
         elif self.y <= CIRCUIT_Y + VEHICLE_SIZE and self.x >= EXIT_LANE_X:
             if exit_portal.on:
                 if self.in_status and self.x >= exit_portal.x:
@@ -185,10 +185,10 @@ class Vehicle:
                     distance = self.x - EXIT_LANE_X
                     self.speed_portal = (1 - distance/(exit_portal.x - EXIT_LANE_X + 5)) * self.desired_speed
                     self.x -= min(self.speed, self.speed_portal)
-        # exiting portal
+        # going through exit lane
         elif self.x <= EXIT_LANE_X + VEHICLE_SIZE and self.y <= CIRCUIT_Y:
            self.y -= self.speed
-        # going through exit lane
+        # add queue time to array
         if self.x <= enter_portal.x and self.entry_time is None:
             self.entry_time = time.time()
             waiting_time_array.append(self.entry_time - self.generate_time)
