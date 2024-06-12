@@ -17,17 +17,20 @@ ENTRY_LANE2_X = 360
 EXIT_LANE2_X = 440
 LANE_Y = 0
 
-# parking spot
+# parking entrance
 PARKING_ENTRY1_X = 360
 PARKING_ENTRY2_X = 370
+
+# parking exit
 PARKING_EXIT1_X = 440
 PARKING_EXIT2_X = 430
+
 PARKING_Y = 400
 # Create game window
 win = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 
 # create font
-font = pygame.font.Font(None, 20)
+font = pygame.font.Font(None, 15)
 
 class Button:
     def __init__(self, color, x, y, width, height, text=''):
@@ -107,7 +110,7 @@ class Vehicle:
         if self.x == ENTRY_LANE_X and self.y < CIRCUIT_Y:
             self.y += self.speed
         # left
-        elif self.y >= CIRCUIT_Y and self.x > CIRCUIT_X and self.x < EXIT_LANE_X and self.y < CIRCUIT_Y + CIRCUIT_HEIGHT - VEHICLE_SIZE:
+        elif self.y >= CIRCUIT_Y and self.x > CIRCUIT_X and self.x <= ENTRY_LANE_X and self.y < CIRCUIT_Y + CIRCUIT_HEIGHT//2:
             if enter_portal.on:
                 if self.in_status == False and self.x >= enter_portal.x:
                     distance = self.x - enter_portal.x
@@ -125,27 +128,35 @@ class Vehicle:
         elif self.x <= CIRCUIT_X and self.y >= CIRCUIT_Y and self.y < CIRCUIT_Y + CIRCUIT_HEIGHT - VEHICLE_SIZE:
             self.y += self.speed
         # right
-        elif self.y >= CIRCUIT_Y + CIRCUIT_HEIGHT - VEHICLE_SIZE and self.x < PARKING_ENTRY_X: #FIX THIS
+        elif self.x < PARKING_ENTRY_X and self.y >= CIRCUIT_Y + CIRCUIT_HEIGHT - VEHICLE_SIZE:
             self.x += self.speed
-        elif self.x >= PARKING_ENTRY_X and self.y >= CIRCUIT_Y + CIRCUIT_HEIGHT - VEHICLE_SIZE:
-            self.y -= self.speed
-        elif self.x >= CIRCUIT_X + CIRCUIT_WIDTH - VEHICLE_SIZE and self.y >= CIRCUIT_Y:
-            self.y -= self.speed
-        elif self.y <= CIRCUIT_Y and self.x >= EXIT_LANE_X:
-            if exit_portal.on:
-                if self.in_status and self.x >= exit_portal.x:
-                    distance = self.x - exit_portal.x
-                    self.speed_portal = distance / (CIRCUIT_X + CIRCUIT_WIDTH - exit_portal.x) * self.desired_speed
-                    self.x -= min(self.speed_portal, self.speed)
-                if exit_portal.color == 'green' and self.x <= exit_portal.x + 5:
-                    self.in_status = False
-                    self.exit_status = True
-                if self.in_status == False and self.exit_status == True:
-                    distance = self.x - EXIT_LANE_X
-                    self.speed_portal = (1 - distance/(exit_portal.x - EXIT_LANE_X + 5)) * self.desired_speed
-                    self.x -= min(self.speed, self.speed_portal)
-        elif self.x <= EXIT_LANE_X + VEHICLE_SIZE and self.y <= CIRCUIT_Y:
-           self.y -= self.speed
+        elif self.x >= PARKING_ENTRY_X:
+            if self.x < PARKING_EXIT_X:
+                if self.y >= PARKING_Y - 2*VEHICLE_SIZE:
+                    self.y -= self.speed
+                if self.y <= PARKING_Y - 2*VEHICLE_SIZE:
+                    self.parked = True
+                    self.speed = 1
+                    self.x += self.speed
+            else:
+                self.speed = 0
+        # elif self.x >= PARKING_ENTRY_X and self.y >= CIRCUIT_Y:
+        #     self.y -= self.speed
+        # elif self.y <= CIRCUIT_Y and self.x >= EXIT_LANE_X:
+        #     if exit_portal.on:
+        #         if self.in_status and self.x >= exit_portal.x:
+        #             distance = self.x - exit_portal.x
+        #             self.speed_portal = distance / (CIRCUIT_X + CIRCUIT_WIDTH - exit_portal.x) * self.desired_speed
+        #             self.x -= min(self.speed_portal, self.speed)
+        #         if exit_portal.color == 'green' and self.x <= exit_portal.x + 5:
+        #             self.in_status = False
+        #             self.exit_status = True
+        #         if self.in_status == False and self.exit_status == True:
+        #             distance = self.x - EXIT_LANE_X
+        #             self.speed_portal = (1 - distance/(exit_portal.x - EXIT_LANE_X + 5)) * self.desired_speed
+        #             self.x -= min(self.speed, self.speed_portal)
+        # elif self.x <= EXIT_LANE_X + VEHICLE_SIZE and self.y <= CIRCUIT_Y:
+        #    self.y -= self.speed
     def calculate_acceleration(self, front_vehicle, s):
         # IDM parameters
         v0 = 2  # Desired speed in pixels per frame
@@ -166,8 +177,8 @@ vehicles_lane1 = [Vehicle(ENTRY_LANE1_X, LANE_Y)]
 vehicles_lane2 = [Vehicle(ENTRY_LANE2_X, LANE_Y)]
 lane = 1
 # Create button
-button = Button((0, 255, 0), 350, 250, 100, 50, 'Generate')
-
+generate_button = Button((0, 255, 0), 350, 250, 100, 50, 'Generate')
+unpark_button = Button((0, 255, 0), 350, 150, 100, 50, 'Unpark')
 # create portal
 enter_portal_1 = Portal(300, 105)
 enter_portal_2 = Portal(300, 95)
@@ -187,18 +198,20 @@ while run:
         if event.type == pygame.QUIT:
             run = False
         if event.type == pygame.MOUSEBUTTONDOWN:
-            # Determine which lane has fewer queueing vehicles
-            queueing_vehicles_lane1 = enter_portal_1.count_queueing_vehicles(vehicles_lane1)
-            queueing_vehicles_lane2 = enter_portal_2.count_queueing_vehicles(vehicles_lane2)
+            if generate_button.isOver(pos):
+                # Determine which lane has fewer queueing vehicles
+                queueing_vehicles_lane1 = enter_portal_1.count_queueing_vehicles(vehicles_lane1)
+                queueing_vehicles_lane2 = enter_portal_2.count_queueing_vehicles(vehicles_lane2)
 
-            if queueing_vehicles_lane1 <= queueing_vehicles_lane2:
-                vehicles_lane1.append(Vehicle(ENTRY_LANE1_X, LANE_Y))
-            else:
-                vehicles_lane2.append(Vehicle(ENTRY_LANE2_X, LANE_Y))
+                if queueing_vehicles_lane1 <= queueing_vehicles_lane2:
+                    vehicles_lane1.append(Vehicle(ENTRY_LANE1_X, LANE_Y))
+                else:
+                    vehicles_lane2.append(Vehicle(ENTRY_LANE2_X, LANE_Y))
 
     
     win.fill((0, 0, 0))
-    button.draw(win)
+    generate_button.draw(win)
+    unpark_button.draw(win)
     
     #entry lane 1
     pygame.draw.line(win, (255, 255, 255), (370, 0), (370, 100), 2)
@@ -224,9 +237,6 @@ while run:
     pygame.draw.line(win, (255, 255, 255), (360, 400), (360, 500), 2)
     #parking entry 2
     pygame.draw.line(win, (255, 255, 255), (370, 400), (370, 510), 2)
-    
-    #parking spot
-    # pygame.draw.rect(win, (255, 255, 255), (340, 340, 120, 60))
     
     #parking exit 1
     pygame.draw.line(win, (255, 255, 255), (440, 400), (440, 500), 2)
@@ -305,13 +315,21 @@ while run:
         if vehicle.x >= EXIT_LANE1_X and vehicle.y == 0:
             vehicles_lane2.remove(vehicle)
 
+    # parking spot
+    pygame.draw.rect(win, (255, 255, 255), (340, 340, 120, 60))
+
     queueing_vehicles_lane1 = enter_portal_1.count_queueing_vehicles(vehicles_lane1)
     queueing_vehicles_lane2 = enter_portal_2.count_queueing_vehicles(vehicles_lane2)
-    text_surface1 = font.render('Queueing vehicles lane 1: ' + str(queueing_vehicles_lane1), True, (255, 255, 255))
-    text_surface2 = font.render('Queueing vehicles lane 2: ' + str(queueing_vehicles_lane2), True, (255, 255, 255))
-    win.blit(text_surface1, (50, 20))
-    win.blit(text_surface2, (50, 40))
     
+    text_queue_count1 = font.render('Queueing vehicles lane 1: ' + str(queueing_vehicles_lane1), True, (255, 255, 255))
+    text_queue_count2 = font.render('Queueing vehicles lane 2: ' + str(queueing_vehicles_lane2), True, (255, 255, 255))
+    win.blit(text_queue_count1, (50, 20))
+    win.blit(text_queue_count2, (50, 40))
+
+    count_parked = sum(vehicle.parked for vehicle in vehicles_lane1) + sum(vehicle.parked for vehicle in vehicles_lane2)
+    text_parked = font.render('Parked vehicles: ' + str(count_parked), True, (0, 0, 0))
+    win.blit(text_parked, (350, 350))
+
     exit_portal_1.draw(win)
     exit_portal_2.draw(win)
     enter_portal_1.draw(win)
