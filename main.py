@@ -10,13 +10,19 @@ WINDOW_WIDTH, WINDOW_HEIGHT = 800, 600
 VEHICLE_SIZE = 5
 VEHICLE_SPEED = 2
 
+# Define the lanes
 ENTRY_LANE1_X = 370
 EXIT_LANE1_X = 430
 ENTRY_LANE2_X = 360
 EXIT_LANE2_X = 440
-
 LANE_Y = 0
 
+# parking spot
+PARKING_ENTRY1_X = 360
+PARKING_ENTRY2_X = 370
+PARKING_EXIT1_X = 440
+PARKING_EXIT2_X = 430
+PARKING_Y = 400
 # Create game window
 win = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 
@@ -89,15 +95,18 @@ class Vehicle:
         self.desired_speed = VEHICLE_SPEED
         self.in_status = False
         self.exit_status = False
+        self.parked = False
 
     def draw(self, win):
         pygame.draw.rect(win, (0, 0, 255), (self.x, self.y, VEHICLE_SIZE, VEHICLE_SIZE))
 
-    def move(self, enter_portal, exit_portal, CIRCUIT_WIDTH, CIRCUIT_HEIGHT, ENTRY_LANE_X, EXIT_LANE_X):
+    def move(self, enter_portal, exit_portal, CIRCUIT_WIDTH, CIRCUIT_HEIGHT, ENTRY_LANE_X, EXIT_LANE_X, PARKING_ENTRY_X, PARKING_EXIT_X, PARKING_Y):
         CIRCUIT_Y = (WINDOW_HEIGHT - CIRCUIT_HEIGHT) // 2
         CIRCUIT_X = (WINDOW_WIDTH - CIRCUIT_WIDTH) // 2
+        # down from entry lane
         if self.x == ENTRY_LANE_X and self.y < CIRCUIT_Y:
             self.y += self.speed
+        # left
         elif self.y >= CIRCUIT_Y and self.x > CIRCUIT_X and self.x < EXIT_LANE_X and self.y < CIRCUIT_Y + CIRCUIT_HEIGHT - VEHICLE_SIZE:
             if enter_portal.on:
                 if self.in_status == False and self.x >= enter_portal.x:
@@ -112,10 +121,14 @@ class Vehicle:
                     self.x -= min(self.speed, self.speed_portal)
             else:
                 self.x -= self.speed
+        # down
         elif self.x <= CIRCUIT_X and self.y >= CIRCUIT_Y and self.y < CIRCUIT_Y + CIRCUIT_HEIGHT - VEHICLE_SIZE:
             self.y += self.speed
-        elif self.y >= CIRCUIT_Y + CIRCUIT_HEIGHT - VEHICLE_SIZE and self.x < CIRCUIT_X + CIRCUIT_WIDTH - VEHICLE_SIZE:
+        # right
+        elif self.y >= CIRCUIT_Y + CIRCUIT_HEIGHT - VEHICLE_SIZE and self.x < PARKING_ENTRY_X: #FIX THIS
             self.x += self.speed
+        elif self.x >= PARKING_ENTRY_X and self.y >= CIRCUIT_Y + CIRCUIT_HEIGHT - VEHICLE_SIZE:
+            self.y -= self.speed
         elif self.x >= CIRCUIT_X + CIRCUIT_WIDTH - VEHICLE_SIZE and self.y >= CIRCUIT_Y:
             self.y -= self.speed
         elif self.y <= CIRCUIT_Y and self.x >= EXIT_LANE_X:
@@ -186,18 +199,65 @@ while run:
     
     win.fill((0, 0, 0))
     button.draw(win)
-    # lane 1
-    pygame.draw.rect(win, (255, 255, 255), (200, 100, 400, 400), 2)
+    
     #entry lane 1
     pygame.draw.line(win, (255, 255, 255), (370, 0), (370, 100), 2)
+    #entry lane 2
+    pygame.draw.line(win, (255, 255, 255), (360, 0), (360, 90), 2)
+    
+    #top left 2
+    pygame.draw.line(win, (255, 255, 255), (190, 90), (360, 90), 2)
+    #top left 1
+    pygame.draw.line(win, (255, 255, 255), (200, 100), (370, 100), 2)
+    
+    #left 1
+    pygame.draw.line(win, (255, 255, 255), (200, 100), (200, 500), 2)
+    #left 2
+    pygame.draw.line(win, (255, 255, 255), (190, 90), (190, 510), 2)
+    
+    #bottom left 1
+    pygame.draw.line(win, (255, 255, 255), (200, 500), (360, 500), 2)
+    #bottom left 2
+    pygame.draw.line(win, (255, 255, 255), (190, 510), (370, 510), 2)
+    
+    #parking entry 1
+    pygame.draw.line(win, (255, 255, 255), (360, 400), (360, 500), 2)
+    #parking entry 2
+    pygame.draw.line(win, (255, 255, 255), (370, 400), (370, 510), 2)
+    
+    #parking spot
+    # pygame.draw.rect(win, (255, 255, 255), (340, 340, 120, 60))
+    
+    #parking exit 1
+    pygame.draw.line(win, (255, 255, 255), (440, 400), (440, 500), 2)
+    #parking exit 2
+    pygame.draw.line(win, (255, 255, 255), (430, 400), (430, 510), 2)
+    
+    #bottom right 1
+    pygame.draw.line(win, (255, 255, 255), (440, 500), (600, 500), 2)
+    #bottom right 2
+    pygame.draw.line(win, (255, 255, 255), (430, 510), (610, 510), 2)
+    
+    #right 1
+    pygame.draw.line(win, (255, 255, 255), (600, 500), (600, 100), 2)
+    #right 2
+    pygame.draw.line(win, (255, 255, 255), (610, 510), (610, 90), 2)
+    
+    #top right 1
+    pygame.draw.line(win, (255, 255, 255), (600, 100), (430, 100), 2)
+    #top right 2
+    pygame.draw.line(win, (255, 255, 255), (610, 90), (440, 90), 2)
+    
     #exit lane 1
     pygame.draw.line(win, (255, 255, 255), (430, 0), (430, 100), 2)
-    # Lane 2
-    pygame.draw.rect(win, (255, 255, 255), (190, 90, 420, 420), 2)
-    #entry lane 2
-    pygame.draw.line(win, (255, 255, 255), (360, 0), (360, 100), 2)
     #exit lane 2
-    pygame.draw.line(win, (255, 255, 255), (440, 0), (440, 100), 2)
+    pygame.draw.line(win, (255, 255, 255), (440, 0), (440, 90), 2)
+    
+    # lane 1
+    #pygame.draw.rect(win, (255, 0, 0), (200, 100, 400, 400), 2)
+    # Lane 2
+    #pygame.draw.rect(win, (255, 255, 255), (190, 90, 420, 420), 2)
+
     # Spawn new vehicles
     for i in range(len(vehicles_lane1)):
         vehicle = vehicles_lane1[i]
@@ -226,7 +286,7 @@ while run:
                 vehicle.speed = max(0, vehicle.speed + a_i)
 
     for vehicle in vehicles_lane1:
-        vehicle.move(enter_portal_1, exit_portal_1, 400, 400, ENTRY_LANE1_X, EXIT_LANE1_X)
+        vehicle.move(enter_portal_1, exit_portal_1, 400, 400, ENTRY_LANE1_X, EXIT_LANE1_X, PARKING_ENTRY1_X, PARKING_EXIT1_X, PARKING_Y)
         enter_portal_1.update(vehicle, vehicles_lane1)
         exit_portal_1.update(vehicle, vehicles_lane1)
         vehicle.draw(win)
@@ -236,7 +296,7 @@ while run:
             vehicles_lane1.remove(vehicle)
     
     for vehicle in vehicles_lane2:
-        vehicle.move(enter_portal_2, exit_portal_2, 420, 420, ENTRY_LANE2_X, EXIT_LANE2_X)
+        vehicle.move(enter_portal_2, exit_portal_2, 420, 420, ENTRY_LANE2_X, EXIT_LANE2_X, PARKING_ENTRY2_X, PARKING_EXIT2_X, PARKING_Y)
         enter_portal_2.update(vehicle, vehicles_lane2)
         exit_portal_2.update(vehicle, vehicles_lane2)
         vehicle.draw(win)
