@@ -338,6 +338,9 @@ while run:
     #exit lane 2
     pygame.draw.line(win, (255, 255, 255), (440, 0), (440, 90), 2)
     
+    pygame.draw.line(win, (255, 255, 255), (360, 500), (440, 500), 2)
+    pygame.draw.line(win, (255, 255, 255), (360, 510), (440, 510), 2)
+    
     # lane 1
     #pygame.draw.rect(win, (255, 0, 0), (200, 100, 400, 400), 2)
     # Lane 2
@@ -449,9 +452,3 @@ while run:
 
     
 pygame.quit()
-
-
-
-
-
-  
