@@ -346,7 +346,7 @@ while run:
     # Lane 2
     #pygame.draw.rect(win, (255, 255, 255), (190, 90, 420, 420), 2)
 
-    # Spawn new vehicles
+    # Implement the IDM model
     for i in range(len(vehicles_lane1)):
         vehicle = vehicles_lane1[i]
         # If there is a previous vehicle, adjust speed based on distance
